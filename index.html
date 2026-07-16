@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="建筑模型 3D 交互游览">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>建筑模型游览</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== 加载画面 ========== -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-icon">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <rect x="8" y="32" width="8" height="24" rx="2" fill="currentColor" class="loading-bar" style="animation-delay: 0s"/>
+          <rect x="20" y="20" width="8" height="36" rx="2" fill="currentColor" class="loading-bar" style="animation-delay: 0.15s"/>
+          <rect x="32" y="12" width="8" height="44" rx="2" fill="currentColor" class="loading-bar" style="animation-delay: 0.3s"/>
+          <rect x="44" y="24" width="8" height="32" rx="2" fill="currentColor" class="loading-bar" style="animation-delay: 0.45s"/>
+        </svg>
+      </div>
+      <h2 class="loading-title">正在加载建筑模型</h2>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <p class="progress-text" id="progress-text">0%</p>
+    </div>
+  </div>
+
+  <!-- ========== 3D 画布容器 ========== -->
+  <div id="canvas-container">
+    <canvas id="three-canvas"></canvas>
+  </div>
+
+  <!-- ========== 滚动导览层 ========== -->
+  <div id="scroll-container">
+    <div class="scroll-spacer"></div>
+
+    <section class="tour-section" data-stop="hero">
+      <div class="section-content">
+        <span class="section-badge">建筑可视化</span>
+        <h1 class="building-title">建筑设计展示</h1>
+        <p class="building-subtitle">向下滑动，探索建筑设计的每一个细节</p>
+        <div class="scroll-hint">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+          <span>滚动探索</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tour-section" data-stop="overview">
+      <div class="section-content">
+        <span class="section-badge">全景总览</span>
+        <h2>建筑全貌</h2>
+        <p>自由旋转视角，从每一个角度感受建筑的体量关系与空间构成</p>
+      </div>
+    </section>
+
+    <section class="tour-section" data-stop="exploded">
+      <div class="section-content">
+        <span class="section-badge">结构分解</span>
+        <h2>爆炸视图</h2>
+        <p>各组件逐层分离，清晰展示建筑的内部结构与装配逻辑</p>
+      </div>
+    </section>
+
+    <section class="tour-section" data-stop="detail">
+      <div class="section-content">
+        <span class="section-badge">细部特写</span>
+        <h2>设计细节</h2>
+        <p>近距离观察关键节点与设计语言</p>
+      </div>
+    </section>
+
+    <section class="tour-section" data-stop="topview">
+      <div class="section-content">
+        <span class="section-badge">平面布局</span>
+        <h2>俯视平面</h2>
+        <p>鸟瞰视角展示空间组织与流线关系</p>
+      </div>
+    </section>
+
+    <section class="tour-section cta-section" data-stop="summary">
+      <div class="section-content">
+        <span class="section-badge">分享体验</span>
+        <h2>分享这座建筑</h2>
+        <p>扫描二维码，在任意设备上自由探索</p>
+        <button id="btn-qr-main" class="btn-glass">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="17" y="17" width="1.5" height="1.5"/>
+            <rect x="20" y="17" width="1.5" height="1.5"/>
+            <rect x="17" y="20" width="1.5" height="1.5"/>
+            <rect x="20" y="20" width="1.5" height="1.5"/>
+          </svg>
+          打开二维码
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========== 侧边导航点 ========== -->
+  <nav id="section-dots">
+    <span class="dot active" data-index="0"></span>
+    <span class="dot" data-index="1"></span>
+    <span class="dot" data-index="2"></span>
+    <span class="dot" data-index="3"></span>
+    <span class="dot" data-index="4"></span>
+    <span class="dot" data-index="5"></span>
+  </nav>
+
+  <!-- ========== 底部控制栏 ========== -->
+  <div id="control-bar">
+    <div class="control-group" id="explode-group">
+      <label class="control-label">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        爆炸
+      </label>
+      <input type="range" id="explode-slider" min="0" max="100" value="0" step="1">
+      <button id="btn-auto-explode" class="btn-icon" title="自动播放爆炸动画">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="6,3 20,12 6,21"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="control-group">
+      <button id="btn-free-mode" class="btn-glass" title="切换自由视角">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 2a14 14 0 0 1 0 20M12 2a14 14 0 0 0 0 20M2 12h20"/>
+        </svg>
+        <span>自由视角</span>
+      </button>
+      <button id="btn-reset-view" class="btn-icon" title="重置视角">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 1 9 9"/>
+          <path d="M3 3v6h6"/>
+        </svg>
+      </button>
+      <button id="btn-qr" class="btn-glass">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="17" y="17" width="1.5" height="1.5"/>
+          <rect x="20" y="17" width="1.5" height="1.5"/>
+          <rect x="17" y="20" width="1.5" height="1.5"/>
+        </svg>
+        <span class="label-text">QR</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== QR 码模态框 ========== -->
+  <div id="qr-modal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" id="btn-qr-close">&times;</button>
+      <h3>扫码体验</h3>
+      <div id="qr-code-container">
+        <img id="qr-code-img" src="" alt="QR Code">
+      </div>
+      <p class="qr-hint">扫描二维码，在手机上打开建筑模型</p>
+      <div class="qr-url-row">
+        <input type="text" id="qr-url-input" readonly value="">
+        <button id="btn-copy-url" class="btn-glass">复制链接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 3D 标注层 ========== -->
+  <div id="annotations-layer"></div>
+
+  <!-- ========== Three.js Import Map ========== -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- ========== 应用入口 ========== -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
