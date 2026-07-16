@@ -209,7 +209,7 @@ export class Viewer {
    */
   async loadModel(url, onProgress) {
     const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+    dracoLoader.setDecoderPath('./vendor/three/examples/jsm/libs/draco/');
 
     const gltfLoader = new GLTFLoader();
     gltfLoader.setDRACOLoader(dracoLoader);

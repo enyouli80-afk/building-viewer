@@ -4,3 +4,6 @@
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# Cloudflare 缓存
+.wrangler/
